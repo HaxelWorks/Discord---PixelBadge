@@ -1,3 +1,4 @@
+# this is a working example of a websocket server
 import asyncio
 import http
 import websockets

@@ -17,13 +17,17 @@ class MyClient(discord.Client):
 
     # Triggers whenever a user enters or leaves a voice channel
     async def on_voice_state_update(self, user, before, after):
-        print("kaka")
+        if after.channel is None:
+            print(user.name + " left channel ", before.channel) 
+        else:           
+            print(user.name + " has joined " + after.channel.name)
+        
+        
 
 
 client = MyClient()
 
-loop = asyncio.get_event_loop()
-loop.create_task(client.start(TOKEN))
+
 
 
 async def health_check(path, request_headers):
@@ -45,5 +49,8 @@ async def run_websock():
     ):
         await asyncio.Future() # run forever
 
-asyncio.gather()
-loop.run_until_complete(run_websock())
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    asyncio.gather(run_websock(), client.start(TOKEN))
+    loop.run_forever()
+
