@@ -1,2 +1,2 @@
-discord.py
 websockets
+git+https://github.com/Pycord-Development/pycord
