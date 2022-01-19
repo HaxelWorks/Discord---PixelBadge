@@ -6,8 +6,9 @@ from tokens import TOKEN
 from util import id_generator
 from collections import defaultdict
 
-# DISCORD PART
+HOST_IP = "192.168.0.147"
 
+# DISCORD PART
 routing_table = defaultdict(lambda: None)  # Routes guild_ids to websockets
 pending_sockets = defaultdict(lambda: None)  #
 
@@ -78,9 +79,9 @@ async def receive_ws(websocket):
     async for message in websocket:
         if message.startswith("connect"):
             key = message.split(":")[1]
+            print(f"key: {key} wants to connect")
             pending_sockets[key] = websocket
         await websocket.send("connection_pending")
-
 
 # TODO implement a health check for the connected ipanes
 
@@ -88,7 +89,7 @@ async def receive_ws(websocket):
 async def ws_server_run():
     async with websockets.serve(
         receive_ws,
-        "localhost",
+        HOST_IP,
         8765,
         process_request=health_check,
     ):
