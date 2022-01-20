@@ -2,6 +2,7 @@ import discord
 import asyncio
 import http
 import websockets
+import asyncore
 from tokens import TOKEN
 from util import id_generator
 from collections import defaultdict
@@ -23,7 +24,7 @@ class DiscordClient(discord.Bot):
         print("Message from {0.author}: {0.content}".format(message))
 
     # Triggers whenever a user enters or leaves a voice channel
-    async def on_voice_state_update(self, user, before, after):
+    async def on_voice_state_update(self, user:discord.User, before, after):
         # If the user has joined a voice channel
         if before.channel is None and after.channel is not None:
             state = "joined"
@@ -33,11 +34,18 @@ class DiscordClient(discord.Bot):
         elif before.channel is not None and after.channel is None:
             state = "left"
             channel = before.channel
-
+            
+        # If the user has moved to a different voice channel
+        elif before.channel != after.channel:
+            state = "moved to"
+            channel = after.channel    
+        else: # Do nothing
+            return
         
-        message = f"{user} has {state} {channel.name}"
-        print(message)
-
+        
+        # Remove the hashtag from the user id
+        user = user.name.split("#")[0]
+        print(message := f"{user}:{state}:{channel.guild.name}:{channel.name}")
         # Check if there are receiving sockets for this guild
         if (sockets := routing_table[channel.guild.id]) is not None:
             # If there are, send the websockets a message
@@ -50,6 +58,7 @@ bot = DiscordClient(sync_commands=False)
 
 @bot.slash_command()
 async def connect_ipane(ctx, key: str):
+    key = key.upper()
     if websocket := pending_sockets[key]:
         if (
             routing_table[ctx.guild.id] is None
@@ -60,7 +69,7 @@ async def connect_ipane(ctx, key: str):
         else:
             routing_table[ctx.guild.id].append(websocket)
 
-        await websocket.send("connection_accepted")
+        await websocket.send("connection accepted")
         await ctx.respond("Connection accepted")
         pending_sockets.pop(key)
         print(f"{ctx.author}'s Ipane is connected to {ctx.guild.name}")
@@ -79,9 +88,10 @@ async def receive_ws(websocket):
     async for message in websocket:
         if message.startswith("connect"):
             key = message.split(":")[1]
+            
             print(f"key: {key} wants to connect")
             pending_sockets[key] = websocket
-        await websocket.send("connection_pending")
+        await websocket.send("connection waiting")
 
 # TODO implement a health check for the connected ipanes
 
