@@ -3,6 +3,7 @@ Websockets protocol
 """
 
 # import logging
+import sys
 import ure as re
 import ustruct as struct
 import urandom as random
@@ -178,7 +179,9 @@ class Websocket:
         If you don't call recv() sufficiently often you won't process control
         frames.
         """
-        assert self.open
+        
+        if not self.open:
+            pass
 
         while self.open:
             try:

@@ -1,45 +1,81 @@
-import rgb
-import time
+import rgb, wifi, system, time
+from default_icons import animation_connecting_wifi, icon_no_wifi
 from math import pi, sin
+
 FRAMERATE = 30
 
 
 # color definitions
-white = (255, 255, 255)
-black = (0,0,0)
-green = (0,255,0)
-red = (255,0,0)
-orange = (255,165,0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+ORANGE = (255, 165, 0)
+BLUE = (0, 0, 255)
 
 
+def connect_wifi():
+    # connect WIFI
+    if not wifi.status():
+        data, size, frames = animation_connecting_wifi
+        rgb.clear()
+        rgb.framerate(3)
+        rgb.gif(data, (12, 0), size, frames)
+        wifi.connect()
+        if wifi.wait():
+            rgb.clear()
+            rgb.framerate(20)
+        else:
+            print("No wifi")
+            rgb.clear()
+            rgb.framerate(20)
+            data, frames = icon_no_wifi
+            rgb.image(data, (12, 0), (8, 8))
+            time.sleep(3)
+            rgb.clear()
+    if not wifi.status():
+        print("Error connecting to wifi")
+        system.reboot()
 
-def notify(who,what,guild,channel):
+
+# Function that removes unicode characters from a string
+def remove_unicode(string):
+    return "".join(i for i in string if ord(i) < 128)
+
+
+def notify(who, what, guild, channel):
     # Select the right color
     if what == "joined":
-        color = green
+        color = GREEN
     elif what == "left":
-        color = red
+        color = RED
     elif what == "moved to":
-        color = orange
+        color = ORANGE
+    elif what == "switched to":
+        color = BLUE
     else:
-        color = white
-    
-    text = who + " " + what + " " + guild + " " + channel
-    scroll_time = 7*len(text)/FRAMERATE
+        color = WHITE
+
+    text = remove_unicode(who + " " + what + " " + guild + " " + channel)
+    scroll_time = 6 * len(text) / FRAMERATE
     rgb.clear()
     rgb.framerate(FRAMERATE)
     rgb.brightness(16)
-    
+
     # Flash the display n times
     for _ in range(3):
         rgb.background(color)
         time.sleep(0.15)
-        rgb.background(black)
+        rgb.background(BLACK)
         time.sleep(0.2)
-        
+
     rgb.brightness(0)
+
     rgb.scrolltext(text, color)
     time.sleep(scroll_time)
     rgb.clear()
-  
-    
+
+
+# Function that removes unicode characters from a string
+def remove_unicode(string):
+    return "".join(i for i in string if ord(i) < 128)
