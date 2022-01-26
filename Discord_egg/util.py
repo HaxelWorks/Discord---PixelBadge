@@ -51,8 +51,6 @@ def notify(who, what, guild, channel):
         color = RED
     elif what == "moved to":
         color = ORANGE
-    elif what == "switched to":
-        color = BLUE
     else:
         color = WHITE
 

@@ -11,8 +11,11 @@ import asyncio
 from collections import defaultdict
 import discord
 import websockets
-from util import LOGGER
+from os import path
+import pickle
+import atexit
 
+from util import LOGGER
 
 class Conns:
     """
@@ -20,10 +23,27 @@ class Conns:
     This class does not need to be instantiated.
 
     """
-
+    
     pending = defaultdict(lambda: None)  # key: key, value: websocket
     routing = defaultdict(lambda: None)  # guild_id -> [BadgeUser]
     users = defaultdict(lambda: None)  # key: UserId, value: BadgeUser
+    known_keys = defaultdict(lambda: None)  # key: key, value: BadgeUser
+
+CONNS_PATH = "connections.p"
+# if the file exists, load the connections
+if path.exists(CONNS_PATH):
+    LOGGER.info("Loading previous connections")
+    Conns = pickle.load(open(CONNS_PATH, "rb"))
+
+
+def save_connections() -> None:
+    """Save the connections to a file by pickling the Conns class"""
+    print("Saving connections")
+    pickle.dump(Conns, open(CONNS_PATH, "wb"))
+    print("Saved connections")
+
+
+atexit.register(save_connections)
 
 
 class BadgeUser:
@@ -59,6 +79,7 @@ class BadgeUser:
 
 class SlashCommands:
     """This class does not need to be instantiated."""
+
     @staticmethod
     async def connect_badge(ctx, key: str):
         """Connect a badge to your user account"""
@@ -67,10 +88,12 @@ class SlashCommands:
         guild = ctx.guild
 
         key = key.upper()
-        if not (ws := Conns.pending[key]):  # If the key is invalid, do nothing and return
+        if not (
+            ws := Conns.pending[key]
+        ):  # If the key is invalid, do nothing and return
             await ctx.send("Invalid key")
             return
-        
+
         if not (badge_user := Conns.users[user.id]):  # If the user has no badges
             badge_user = Conns.users[user.id] = BadgeUser(
                 ws, key, user, guild
@@ -83,12 +106,13 @@ class SlashCommands:
             LOGGER.info(f"new badge connected to user: {user.name}")
 
         # Add the user to the routing table
-        if (routes:=Conns.routing[guild.id]): # if the guild has a routing table
-            routes.append(badge_user) 
-        else:# if the guild has no routing table
+        if routes := Conns.routing[guild.id]:  # if the guild has a routing table
+            routes.append(badge_user)
+        else:  # if the guild has no routing table
             Conns.routing[guild.id] = [badge_user]
-            
-     
+        
+        # add the key to the keys table
+        Conns.known_keys[key] = badge_user    
 
         # Acknoledge the connection
         msg = "connection accepted"
@@ -106,11 +130,16 @@ class SlashCommands:
             await ctx.respond("You have no badge connected")
             return
 
+        if table := Conns.routing[ctx.guild.id]:  # if the guild has a routing table
+            table.append(badge_user)
+        else:  # if the guild has no routing table
+            Conns.routing[ctx.guild.id] = [badge_user]
         await ctx.respond("Enabled")
         LOGGER.info(f"{ctx.author}'s Badges are enabled on {ctx.guild.name}")
 
 
 from util import key_generator
+
 # This is a callback function used by the websocket server
 
 
@@ -125,9 +154,17 @@ async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -
                 await websocket.send("connection waiting:" + key)
 
             elif message.startswith("reconnect"):
-                key = message.split(":")[1]
-                Conns.pending[key] = websocket
-                LOGGER.info(f"key: {key} wants to reconnect")
                 await websocket.send("connection waiting")
+                key = message.split(":")[1]
+                # if the key is found
+                if badge_user := Conns.known_keys[key]:
+                    badge_user.websockets[key] = websocket
+                    await websocket.send("connection accepted")
+                    LOGGER.info(f"key: {key} reconnected")
+                else:
+                    await websocket.send("connection denied")
+                    LOGGER.info(f"key: {key} reconnected but key is invalid")
+                
+                
     except:
         LOGGER.error(f"{websocket} has been lost")

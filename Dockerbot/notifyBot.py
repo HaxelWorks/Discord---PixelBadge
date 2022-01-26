@@ -38,11 +38,6 @@ class DiscordClient(discord.Bot):
             state = "left"
             channel = before.channel
 
-        # If the user has switched servers
-        elif before.channel.guild != after.channel.guild:
-            state = "switched to"
-            channel = after.channel
-
         # If the user has moved to a different voice channel
         elif before.channel != after.channel:
             state = "moved to"
@@ -53,8 +48,8 @@ class DiscordClient(discord.Bot):
         # Remove the hashtag from the user id
         user = user.name.split("#")[0]
         LOGGER.info(message := f"{user}:{state}:{channel.guild.name}:{channel.name}")
-        badge_users = manager.Conns.routing[channel.guild.id]
-        await asyncio.gather(*[bu.send_to_badges(message) for bu in badge_users])
+        if badge_users := manager.Conns.routing[channel.guild.id]:
+            await asyncio.gather(*[bu.send_to_badges(message) for bu in badge_users])
 
 
 # The manager is imported after creation of the bot

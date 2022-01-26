@@ -76,6 +76,8 @@ def connect_badgeserver(websocket):
     rec = websocket.recv()
     if rec.startswith("connection waiting"):
         key = rec.split(":")[1] # key is the second part of the message
+        rgb.clear()
+        
         rgb.scrolltext(key)
         print(key)
     if websocket.recv() == "connection accepted":
@@ -103,7 +105,11 @@ def reconnect_badgeserver(websocket, key):
         print("Connected")
     else:
         print("Connection failed")
+        rgb.clear()
         rgb.scrolltext("Connection failed", RED)
+        #throw an exception
+        raise Exception("Connection failed")
+        
 
 
 def main():
