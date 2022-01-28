@@ -58,7 +58,7 @@ def notify(who, what, guild, channel):
     scroll_time = 6 * len(text) / FRAMERATE
     rgb.clear()
     rgb.framerate(FRAMERATE)
-    rgb.brightness(16)
+    rgb.brightness(32)
 
     # Flash the display n times
     for _ in range(3):

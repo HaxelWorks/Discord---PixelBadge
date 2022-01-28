@@ -1,11 +1,5 @@
-## Pretty clock
-## just to annoy Tom because i can't be bothered to do a pull request
-## added multiple colors. Up/Down control them
-## Added timezone support
-## Set up your timezone from the terminal by entering:
-## machine.nvs_setstr('system', 'timezone', 'YOURTIMEZONE')
-## Get your YOURTIMEZONE from
-## https://remotemonitoringsystems.ca/time-zone-abbreviations.php
+# Adapted from PrettyClock
+# Thx to Sebastius
 
 import rgb, machine, time
 from default_icons import animation_connecting_wifi, icon_no_wifi

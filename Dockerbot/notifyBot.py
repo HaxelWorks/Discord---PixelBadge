@@ -7,7 +7,7 @@ import time
 import math
 import manager
 import discord
-from util import LOGGER
+
 
 HOST_IP = "192.168.0.147"
 
@@ -16,14 +16,14 @@ HOST_IP = "192.168.0.147"
 class DiscordClient(discord.Bot):
     # This is here for debugging purposes
     async def on_ready(self):
-        LOGGER.info("Logged on as {0}!".format(self.user))
+        print("Logged on as {0}!".format(self.user))
 
-    # This is here for future purposes
-    async def on_message(self, message):
-        LOGGER.info("Message from {0.author}: {0.content}".format(message))
-        if message.content == "sync_commands":
-            LOGGER.info("sync commands")
-            await self.register_commands()
+    # This is here for debugging purposes
+    # async def on_message(self, message):
+    #     print("Message from {0.author}: {0.content}".format(message))
+    #     if message.content == "sync_commands":
+    #         print("sync commands")
+    #         await self.register_commands()
 
     # Triggers whenever a user enters or leaves a voice channel
     async def on_voice_state_update(self, user: discord.User, before, after):
@@ -47,8 +47,8 @@ class DiscordClient(discord.Bot):
 
         # Remove the hashtag from the user id
         user = user.name.split("#")[0]
-        LOGGER.info(message := f"{user}:{state}:{channel.guild.name}:{channel.name}")
-        if badge_users := manager.Conns.routing[channel.guild.id]:
+        print(message := f"{user}:{state}:{channel.guild.name}:{channel.name}")
+        if badge_users := manager.ConnStore.routing[channel.guild.id]:
             await asyncio.gather(*[bu.send_to_badges(message) for bu in badge_users])
 
 
@@ -77,7 +77,7 @@ async def health_check(path, request_headers):
 
 
 async def socket_server_run():
-    LOGGER.info("Starting websocket server")
+    print("Starting websocket server")   
     async with websockets.serve(
         manager.receive_new_websocket,
         HOST_IP,
@@ -85,20 +85,30 @@ async def socket_server_run():
         process_request=health_check,
     ):
         await asyncio.Future()  # run forever
+async def restart(coro):
+    while True:
+        try:
+            await coro()
+        except Exception as e:
+            print(f"Restarting due to {e}")
+            
+
+            
+        
+    
 
 
 async def keepalive():
-    LOGGER.info("Starting keepalive")
+    print("Starting keepalive")
     while True:
         # sleep until the next whole minute
         now = time.time()
         await asyncio.sleep(60 * (math.ceil(now / 60) - now / 60))
 
         # execute the keepalive command on all active sockets
-        active_users = [usr for usr in manager.Conns.users.values() if usr.active]
+        active_users = [usr for usr in manager.ConnStore.users.values() if usr.active]
         if active_users:
-            await asyncio.gather(*[usr.send_to_badges("ping") for usr in active_users])
-            LOGGER.info(f"Sending ping to {len(active_users)} active sockets")
+            await asyncio.gather(*[usr.send_to_badges("ping") for usr in active_users])          
         else:
             print("No active sockets")
 
@@ -109,7 +119,7 @@ def main():
     )  # INVESTIGATE "DeprecationWarning: There is no current event loop"
     asyncio.set_event_loop(loop)
     loop.create_task(bot.start(TOKEN))
-    loop.create_task(socket_server_run())
+    loop.create_task(restart(socket_server_run))
     loop.create_task(keepalive())
     loop.run_forever()
 

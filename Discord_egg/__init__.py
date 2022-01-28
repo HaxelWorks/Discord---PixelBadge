@@ -12,7 +12,7 @@ from util import notify, connect_wifi
 from util import RED, GREEN, BLUE
 from protocol import Websocket, urlparse
 import rgb, system, machine, time
-from prettyClock import update_clock
+from clock import update_clock
 import urandom as random
 
 rgb.framerate(30)

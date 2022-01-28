@@ -15,35 +15,48 @@ from os import path
 import pickle
 import atexit
 
-from util import LOGGER
 
-class Conns:
+class ConnStore:
     """
     Contains all the connections.
     This class does not need to be instantiated.
-
     """
-    
+
     pending = defaultdict(lambda: None)  # key: key, value: websocket
     routing = defaultdict(lambda: None)  # guild_id -> [BadgeUser]
     users = defaultdict(lambda: None)  # key: UserId, value: BadgeUser
     known_keys = defaultdict(lambda: None)  # key: key, value: BadgeUser
-
-CONNS_PATH = "connections.p"
-# if the file exists, load the connections
-if path.exists(CONNS_PATH):
-    LOGGER.info("Loading previous connections")
-    Conns = pickle.load(open(CONNS_PATH, "rb"))
-
-
-def save_connections() -> None:
-    """Save the connections to a file by pickling the Conns class"""
-    print("Saving connections")
-    pickle.dump(Conns, open(CONNS_PATH, "wb"))
-    print("Saved connections")
+    
+    # @classmethod
+    # def save_store():
+    #     pass
+        
 
 
-atexit.register(save_connections)
+# def save_store():
+#     """save the routing,users and known_keys to a dictionary which will then be pickled"""
+#     with open("data.pkl", "wb") as f:
+#         pickle.dump(
+#             {
+#                 "routing": ConnStore.routing,
+#                 "users": ConnStore.users,
+#                 "known_keys": ConnStore.known_keys,
+#             },
+#             f,
+#         )
+
+
+# atexit.register(save_store)
+
+
+# def load():
+#     """load the routing,users and known_keys from a dictionary which was pickled"""
+#     # if the file does not exist, return
+#     if not path.exists("data.pkl"):
+#         return
+#     with open("data.pkl", "rb") as f:
+#         for key, value in pickle.load(f):
+#             setattr(ConnStore, key, value)
 
 
 class BadgeUser:
@@ -63,7 +76,7 @@ class BadgeUser:
         try:
             await websocket.send(message)
         except:
-            LOGGER.error(f"{self.user}'s connection {key} is has been lost")
+            print(f"{self.user}'s connection {key} is has been lost")
             self.websockets.pop(key)
 
     async def send_to_badges(self, message: str):
@@ -89,82 +102,85 @@ class SlashCommands:
 
         key = key.upper()
         if not (
-            ws := Conns.pending[key]
+            ws := ConnStore.pending[key]
         ):  # If the key is invalid, do nothing and return
             await ctx.send("Invalid key")
             return
 
-        if not (badge_user := Conns.users[user.id]):  # If the user has no badges
-            badge_user = Conns.users[user.id] = BadgeUser(
+        if not (badge_user := ConnStore.users[user.id]):  # If the user has no badges
+            badge_user = ConnStore.users[user.id] = BadgeUser(
                 ws, key, user, guild
             )  # create a new badge user
-            LOGGER.info(f"new badge user: {user.name}")
+            print(f"new badge user: {user.name}")
         else:  # If the user already has a badge connected
             badge_user.websockets[
                 key
             ] = ws  # use the key to connect the websocket to the badge user
-            LOGGER.info(f"new badge connected to user: {user.name}")
+            print(f"new badge connected to user: {user.name}")
 
         # Add the user to the routing table
-        if routes := Conns.routing[guild.id]:  # if the guild has a routing table
+        if routes := ConnStore.routing[guild.id]:  # if the guild has a routing table
             routes.append(badge_user)
         else:  # if the guild has no routing table
-            Conns.routing[guild.id] = [badge_user]
-        
+            ConnStore.routing[guild.id] = [badge_user]
+
         # add the key to the keys table
-        Conns.known_keys[key] = badge_user    
+        ConnStore.known_keys[key] = badge_user
 
         # Acknoledge the connection
         msg = "connection accepted"
         await asyncio.gather(ws.send(msg), ctx.respond(msg))
-        LOGGER.info(f"{user}'s Ipane is connected to {guild.name}")
+        print(f"{user}'s Ipane is connected to {guild.name}")
 
         # Clean up the pending connections
-        Conns.pending.pop(key)
+        ConnStore.pending.pop(key)
 
     @staticmethod
     async def enable_notifications(ctx):
         """Enable notifications for this server"""
 
-        if not (badge_user := Conns.users[ctx.author.id]):  # If the user has no badges
+        if not (
+            badge_user := ConnStore.users[ctx.author.id]
+        ):  # If the user has no badges
             await ctx.respond("You have no badge connected")
             return
 
-        if table := Conns.routing[ctx.guild.id]:  # if the guild has a routing table
+        if table := ConnStore.routing[ctx.guild.id]:  # if the guild has a routing table
             table.append(badge_user)
         else:  # if the guild has no routing table
-            Conns.routing[ctx.guild.id] = [badge_user]
+            ConnStore.routing[ctx.guild.id] = [badge_user]
         await ctx.respond("Enabled")
-        LOGGER.info(f"{ctx.author}'s Badges are enabled on {ctx.guild.name}")
+        print(f"{ctx.author}'s Badges are enabled on {ctx.guild.name}")
+
+
+# We load after the class definitions
+# load()
 
 
 from util import key_generator
 
 # This is a callback function used by the websocket server
-
-
 async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -> None:
     """Receive a new websocket connection and add it to the pending connections table"""
     try:
         async for message in websocket:
             if message == "connect":
                 key = key_generator(7)
-                Conns.pending[key] = websocket
-                LOGGER.info(f"key: {key} wants to connect")
+                ConnStore.pending[key] = websocket
+                print(f"key: {key} wants to connect")
                 await websocket.send("connection waiting:" + key)
 
             elif message.startswith("reconnect"):
                 await websocket.send("connection waiting")
                 key = message.split(":")[1]
                 # if the key is found
-                if badge_user := Conns.known_keys[key]:
+                if badge_user := ConnStore.known_keys[key]:
                     badge_user.websockets[key] = websocket
                     await websocket.send("connection accepted")
-                    LOGGER.info(f"key: {key} reconnected")
+                    print(f"key: {key} reconnected")
                 else:
                     await websocket.send("connection denied")
-                    LOGGER.info(f"key: {key} reconnected but key is invalid")
-                
-                
+                    print(f"key: {key} wants to reconnect but key is not known")
+
     except:
-        LOGGER.error(f"{websocket} has been lost")
+        print("A connection has been interrupted")
