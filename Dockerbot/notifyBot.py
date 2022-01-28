@@ -77,7 +77,7 @@ async def health_check(path, request_headers):
 
 
 async def socket_server_run():
-    print("Starting websocket server")   
+    print("Starting websocket server")
     async with websockets.serve(
         manager.receive_new_websocket,
         HOST_IP,
@@ -85,17 +85,14 @@ async def socket_server_run():
         process_request=health_check,
     ):
         await asyncio.Future()  # run forever
+
+
 async def restart(coro):
     while True:
         try:
             await coro()
         except Exception as e:
             print(f"Restarting due to {e}")
-            
-
-            
-        
-    
 
 
 async def keepalive():
@@ -108,7 +105,7 @@ async def keepalive():
         # execute the keepalive command on all active sockets
         active_users = [usr for usr in manager.ConnStore.users.values() if usr.active]
         if active_users:
-            await asyncio.gather(*[usr.send_to_badges("ping") for usr in active_users])          
+            await asyncio.gather(*[usr.send_to_badges("ping") for usr in active_users])
         else:
             print("No active sockets")
 
