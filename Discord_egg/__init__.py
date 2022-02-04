@@ -12,10 +12,15 @@ from util import notify, connect_wifi
 from util import RED, GREEN, BLUE
 from protocol import Websocket, urlparse
 import rgb, system, machine, time
-from clock import update_clock
+from klok import update_clock
 import urandom as random
 
+import network
+
+network = network.WLAN(network.STA_IF)
 rgb.framerate(30)
+
+WS = None  # websocket
 
 
 class WebsocketClient(Websocket):
@@ -35,8 +40,13 @@ def connect_websocket(uri):
     #                             uri.hostname, uri.port)
 
     sock = socket.socket()
+    sock.settimeout(2)
     addr = socket.getaddrinfo(uri.hostname, uri.port)
+    print("preconnect")
+    print(sock)
     sock.connect(addr[0][4])
+    print(sock)
+    print("postconnect")
     if uri.protocol == "wss":
         sock = ussl.wrap_socket(sock)
 
@@ -66,7 +76,7 @@ def connect_websocket(uri):
     while header:
         # if __debug__: LOGGER.debug(str(header))
         header = sock.readline()[:-2]
-
+    sock.settimeout(None)
     return WebsocketClient(sock)
 
 
@@ -75,9 +85,9 @@ def connect_badgeserver(websocket):
     websocket.send("connect")
     rec = websocket.recv()
     if rec.startswith("connection waiting"):
-        key = rec.split(":")[1] # key is the second part of the message
+        key = rec.split(":")[1]  # key is the second part of the message
         rgb.clear()
-        
+
         rgb.scrolltext(key)
         print(key)
     if websocket.recv() == "connection accepted":
@@ -107,34 +117,41 @@ def reconnect_badgeserver(websocket, key):
         print("Connection failed")
         rgb.clear()
         rgb.scrolltext("Connection failed", RED)
-        #throw an exception
+        # throw an exception
         raise Exception("Connection failed")
-        
 
 
-def main():
-    connect_wifi()
+def main_loop():
+    global WS
+    if not network.active():
+        connect_wifi()
+        return
 
     # connect websocket
-    print("Awaiting Connection")
+    if not WS:
+        update_clock()
+        # Set the top right corner pixel blue using rgb.pixel((r, g, b), (x, y))
+        rgb.pixel((0, 0, 255), (0, 0))
+        print("Awaiting Connection")
+        WS.settimeout(60)
+        WS = connect_websocket("ws://192.168.0.147:8765")
+        if not WS:
+            return
+        else:
+            print("Connection established")
+
     rgb.clear()
-    rgb.scrolltext("Seeking Server", BLUE)
-    websocket = connect_websocket("ws://192.168.0.147:8765")
-    websocket.settimeout(3600)
-    rgb.clear()
-    # REFERENCE
-    # machine.nvs_setstr("system", "wifi.ssid", "YOUR SSID HERE")
-    # machine.nvs_setstr("system", "wifi.password", "YOUR PASSWORD HERE")
 
     try:
         key = machine.nvs_getstr("Discord", "key")
-        reconnect_badgeserver(websocket, key)
-    except:
-        connect_badgeserver(websocket)
+        reconnect_badgeserver(WS, key)
 
-    websocket.settimeout(120)
+    except:
+        connect_badgeserver(WS)
+
+    WS.settimeout(120)
     while True:
-        rec = websocket.recv()
+        rec = WS.recv()
         if rec != "ping":
             print(rec)
             who, what, guild, channel = rec.split(":")
@@ -150,7 +167,7 @@ if __name__ == "__main__":
     interrupt = False
     while not interrupt:
         try:
-            main()
+            main_loop()
         except KeyboardInterrupt:
             print("\nExiting")
             interrupt = True

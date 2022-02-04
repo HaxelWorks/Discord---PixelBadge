@@ -7,6 +7,7 @@ import time
 import math
 import manager
 import discord
+# import threading
 
 
 HOST_IP = "192.168.0.147"
@@ -48,19 +49,17 @@ class DiscordClient(discord.Bot):
         # Remove the hashtag from the user id
         user = user.name.split("#")[0]
         print(message := f"{user}:{state}:{channel.guild.name}:{channel.name}")
-        if badge_users := manager.ConnStore.routing[channel.guild.id]:
-            await asyncio.gather(*[bu.send_to_badges(message) for bu in badge_users])
+        manager.Notifiers.voice_change(message, channel.guild.id)
+        
 
 
-# The manager is imported after creation of the bot
-# This is because the manager needs the bot to register the slash command
 bot = DiscordClient()
 
 
 # add the slash commands from the manager to the bot
 @bot.slash_command()
 async def connect_badge(ctx, key: str):
-    """Connects a badge to a user"""
+    """Connects a badge to your user id"""
     await manager.SlashCommands.connect_badge(ctx=ctx, key=key)
 
 
@@ -93,6 +92,7 @@ async def restart(coro):
             await coro()
         except Exception as e:
             print(f"Restarting due to {e}")
+            await asyncio.sleep(5)
 
 
 async def keepalive():
@@ -103,7 +103,7 @@ async def keepalive():
         await asyncio.sleep(60 * (math.ceil(now / 60) - now / 60))
 
         # execute the keepalive command on all active sockets
-        active_users = [usr for usr in manager.ConnStore.users.values() if usr.active]
+        active_users = [usr for usr in manager.Conns.users.values() if usr.active]
         if active_users:
             await asyncio.gather(*[usr.send_to_badges("ping") for usr in active_users])
         else:
@@ -112,14 +112,14 @@ async def keepalive():
 
 def main():
     loop = (
-        asyncio.get_event_loop()
+        asyncio.new_event_loop()
     )  # INVESTIGATE "DeprecationWarning: There is no current event loop"
     asyncio.set_event_loop(loop)
     loop.create_task(bot.start(TOKEN))
     loop.create_task(restart(socket_server_run))
     loop.create_task(keepalive())
     loop.run_forever()
-
+    
 
 if __name__ == "__main__":
     main()

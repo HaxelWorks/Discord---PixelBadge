@@ -12,120 +12,120 @@ from collections import defaultdict
 import discord
 import websockets
 from os import path
-import pickle
+import yaml
 import atexit
+from types import SimpleNamespace
 
-
-class ConnStore:
+class Conns(SimpleNamespace):
     """
-    Contains all the connections.
+    Contains all the connections to badges
     This class does not need to be instantiated.
     """
 
-    pending = defaultdict(lambda: None)  # key: key, value: websocket
-    routing = defaultdict(lambda: None)  # guild_id -> [BadgeUser]
-    users = defaultdict(lambda: None)  # key: UserId, value: BadgeUser
-    known_keys = defaultdict(lambda: None)  # key: key, value: BadgeUser
-    
-    # @classmethod
-    # def save_store():
-    #     pass
-        
+    pending = defaultdict(lambda: None)  #   key: key, value: websocket
+    keyuser = defaultdict(lambda: None)  #   key: key, value: user_id
+    routing = defaultdict(lambda: None)  #   key: guild_id, value: [user_id]
+    sockcon = defaultdict(lambda: None)  #   key: user_id, value: [websocket]
+    # in order to turn guild_id into the target websockets, we do this:
+    # routing[guild_id] --> [user_id] --> sockcon[user_id] --> [websocket]
 
+    # we pack and unpack into yaml files
+    @classmethod
+    def pack(cls):
+        """
+        Packs the class into a yaml file
+        """
+        with open(
+            path.join(path.dirname(path.abspath(__file__)), "badges.yaml"), "w"
+        ) as f:
+            yaml.dump(
+                {
+                    "pending": cls.pending,
+                    "keyuser": cls.keyuser,
+                    "routing": cls.routing,
+                    "sockcon": cls.sockcon,
+                },
+                f,
+            )
 
-# def save_store():
-#     """save the routing,users and known_keys to a dictionary which will then be pickled"""
-#     with open("data.pkl", "wb") as f:
-#         pickle.dump(
-#             {
-#                 "routing": ConnStore.routing,
-#                 "users": ConnStore.users,
-#                 "known_keys": ConnStore.known_keys,
-#             },
-#             f,
-#         )
+    @classmethod
+    def unpack(cls):
+        """
+        Unpacks the class from a yaml file
+        """
+        with open(
+            path.join(path.dirname(path.abspath(__file__)), "badges.yaml"), "r"
+        ) as f:
+            data = yaml.load(f)
+            # TODO can this be done using setattr?
+            cls.pending = data["pending"]
+            cls.keyuser = data["keyuser"]
+            cls.routing = data["routing"]
+            cls.sockcon = data["sockcon"]
 
-
-# atexit.register(save_store)
-
-
-# def load():
-#     """load the routing,users and known_keys from a dictionary which was pickled"""
-#     # if the file does not exist, return
-#     if not path.exists("data.pkl"):
-#         return
-#     with open("data.pkl", "rb") as f:
-#         for key, value in pickle.load(f):
-#             setattr(ConnStore, key, value)
-
-
-class BadgeUser:
-    """Ties badges websockets to a user, and a guild."""
-
-    def __init__(self, websocket, key: str, user: discord.User, guild: discord.Guild):
-        self.websockets = {key: websocket}  # there can be multiple websockets
-        self.guild = guild  # this is the inital guild, the connection can be assigned to multiple guilds in the routing table
-        self.user = user
-
-    @property
-    def active(self):
-        return bool(self.websockets)
-
-    async def _try_send(self, key: str, websocket, message: str):
+    @classmethod
+    async def _try_send(cls, websocket, message: str):
         """Tries to send a message to a websocket. if it fails, it removes the websocket from the list of active websockets"""
         try:
             await websocket.send(message)
         except:
-            print(f"{self.user}'s connection {key} is has been lost")
-            self.websockets.pop(key)
+            for socklist in cls.sockcon.values():
+                if websocket in socklist:
+                    socklist.remove(websocket)
+                    print("removed websocket")
+                    break
 
-    async def send_to_badges(self, message: str):
-        """send message to all badges connected to this user"""
-        if self.active:  # if there are active websockets
-            await asyncio.gather(
-                *[
-                    self._try_send(key, websocket, message)
-                    for key, websocket in self.websockets.items()
-                ]
-            )
+    @classmethod
+    async def send_by_sockets(cls, websockets: list, message: str):
+        """send message to all sockets in websockets"""
+        await asyncio.gather(
+            *[cls._try_send(websocket, message) for websocket in websockets]
+        )
+
+    @classmethod
+    async def send_by_user(cls, user_id: int, message: str):
+        """send message to all sockets in websockets"""
+        await cls.send_by_sockets(cls.sockcon[user_id], message)
+
+    @classmethod
+    async def send_by_guild(cls, guild_id: int, message: str):
+        """send message to all sockets subscribed to this guild"""
+        await cls.send_by_sockets(cls.routing[guild_id], message)
 
 
-class SlashCommands:
+class SlashCommands(SimpleNamespace):
     """This class does not need to be instantiated."""
 
     @staticmethod
     async def connect_badge(ctx, key: str):
-        """Connect a badge to your user account"""
+        """Connect a badge to your user id"""
 
         user = ctx.author
         guild = ctx.guild
 
         key = key.upper()
         if not (
-            ws := ConnStore.pending[key]
+            ws := Conns.pending[key]
         ):  # If the key is invalid, do nothing and return
             await ctx.send("Invalid key")
             return
 
-        if not (badge_user := ConnStore.users[user.id]):  # If the user has no badges
-            badge_user = ConnStore.users[user.id] = BadgeUser(
-                ws, key, user, guild
-            )  # create a new badge user
+        if not (user_sockets := Conns.sockcon[user.id]):  # If the user has no badges
+            Conns.sockcon[user.id] = [ws]
             print(f"new badge user: {user.name}")
         else:  # If the user already has a badge connected
-            badge_user.websockets[
-                key
-            ] = ws  # use the key to connect the websocket to the badge user
+            # use the key to connect the websocket to the badge user
+            user_sockets.append(ws)
             print(f"new badge connected to user: {user.name}")
 
         # Add the user to the routing table
-        if routes := ConnStore.routing[guild.id]:  # if the guild has a routing table
-            routes.append(badge_user)
+        if routes := Conns.routing[guild.id]:  # if the guild has a routing table
+            routes.append(user_sockets)
         else:  # if the guild has no routing table
-            ConnStore.routing[guild.id] = [badge_user]
+            Conns.routing[guild.id] = [user_sockets]
 
         # add the key to the keys table
-        ConnStore.known_keys[key] = badge_user
+        Conns.keyuser[key] = user_sockets
 
         # Acknoledge the connection
         msg = "connection accepted"
@@ -133,28 +133,34 @@ class SlashCommands:
         print(f"{user}'s Ipane is connected to {guild.name}")
 
         # Clean up the pending connections
-        ConnStore.pending.pop(key)
+        Conns.pending.pop(key)
 
     @staticmethod
     async def enable_notifications(ctx):
         """Enable notifications for this server"""
 
-        if not (
-            badge_user := ConnStore.users[ctx.author.id]
-        ):  # If the user has no badges
+        if not (badge_user := Conns.users[ctx.author.id]):  # If the user has no badges
             await ctx.respond("You have no badge connected")
             return
 
-        if table := ConnStore.routing[ctx.guild.id]:  # if the guild has a routing table
+        if table := Conns.routing[ctx.guild.id]:  # if the guild has a routing table
             table.append(badge_user)
         else:  # if the guild has no routing table
-            ConnStore.routing[ctx.guild.id] = [badge_user]
+            Conns.routing[ctx.guild.id] = [badge_user]
         await ctx.respond("Enabled")
         print(f"{ctx.author}'s Badges are enabled on {ctx.guild.name}")
 
 
-# We load after the class definitions
-# load()
+class Notifiers(SimpleNamespace):
+    @staticmethod
+    def voice_change(msg, guild_id):
+        """
+        A user has changed voice channels.
+        """
+
+        if table := Conns.routing[guild_id]:
+            pass
+            # await asyncio.gather(*[bu.send_to_badges(message) for bu in badge_users])
 
 
 from util import key_generator
@@ -166,7 +172,7 @@ async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -
         async for message in websocket:
             if message == "connect":
                 key = key_generator(7)
-                ConnStore.pending[key] = websocket
+                Conns.pending[key] = websocket
                 print(f"key: {key} wants to connect")
                 await websocket.send("connection waiting:" + key)
 
@@ -174,7 +180,7 @@ async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -
                 await websocket.send("connection waiting")
                 key = message.split(":")[1]
                 # if the key is found
-                if badge_user := ConnStore.known_keys[key]:
+                if badge_user := Conns.keyuser[key]:
                     badge_user.websockets[key] = websocket
                     await websocket.send("connection accepted")
                     print(f"key: {key} reconnected")
