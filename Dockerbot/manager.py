@@ -16,6 +16,7 @@ import yaml
 import atexit
 from types import SimpleNamespace
 
+
 class Conns(SimpleNamespace):
     """
     Contains all the connections to badges
@@ -28,40 +29,6 @@ class Conns(SimpleNamespace):
     sockcon = defaultdict(lambda: None)  #   key: user_id, value: [websocket]
     # in order to turn guild_id into the target websockets, we do this:
     # routing[guild_id] --> [user_id] --> sockcon[user_id] --> [websocket]
-
-    # we pack and unpack into yaml files
-    @classmethod
-    def pack(cls):
-        """
-        Packs the class into a yaml file
-        """
-        with open(
-            path.join(path.dirname(path.abspath(__file__)), "badges.yaml"), "w"
-        ) as f:
-            yaml.dump(
-                {
-                    "pending": cls.pending,
-                    "keyuser": cls.keyuser,
-                    "routing": cls.routing,
-                    "sockcon": cls.sockcon,
-                },
-                f,
-            )
-
-    @classmethod
-    def unpack(cls):
-        """
-        Unpacks the class from a yaml file
-        """
-        with open(
-            path.join(path.dirname(path.abspath(__file__)), "badges.yaml"), "r"
-        ) as f:
-            data = yaml.load(f)
-            # TODO can this be done using setattr?
-            cls.pending = data["pending"]
-            cls.keyuser = data["keyuser"]
-            cls.routing = data["routing"]
-            cls.sockcon = data["sockcon"]
 
     @classmethod
     async def _try_send(cls, websocket, message: str):
@@ -76,6 +43,12 @@ class Conns(SimpleNamespace):
                     break
 
     @classmethod
+    async def send_broadcast(cls, msg: str):
+        """Send a message to all active websockets in parallel"""
+        tasks = [cls._try_send(ws, msg) for ws in cls.sockcon.values()]
+        await asyncio.gather(*tasks)
+
+    @classmethod
     async def send_by_sockets(cls, websockets: list, message: str):
         """send message to all sockets in websockets"""
         await asyncio.gather(
@@ -84,13 +57,19 @@ class Conns(SimpleNamespace):
 
     @classmethod
     async def send_by_user(cls, user_id: int, message: str):
-        """send message to all sockets in websockets"""
+        """send message to all sockets connected to user_id"""
         await cls.send_by_sockets(cls.sockcon[user_id], message)
 
     @classmethod
     async def send_by_guild(cls, guild_id: int, message: str):
         """send message to all sockets subscribed to this guild"""
-        await cls.send_by_sockets(cls.routing[guild_id], message)
+
+        # collect all the relevant websockets
+        socks = []
+        for usr_ids in cls.routing[guild_id]:
+            socks.extend(cls.sockcon[usr_ids])
+
+        await cls.send_by_sockets(socks, message)
 
 
 class SlashCommands(SimpleNamespace):
@@ -122,7 +101,7 @@ class SlashCommands(SimpleNamespace):
         if routes := Conns.routing[guild.id]:  # if the guild has a routing table
             routes.append(user_sockets)
         else:  # if the guild has no routing table
-            Conns.routing[guild.id] = [user_sockets]
+            Conns.routing[guild.id] = [user.id]
 
         # add the key to the keys table
         Conns.keyuser[key] = user_sockets
@@ -132,7 +111,7 @@ class SlashCommands(SimpleNamespace):
         await asyncio.gather(ws.send(msg), ctx.respond(msg))
         print(f"{user}'s Ipane is connected to {guild.name}")
 
-        # Clean up the pending connections
+        # Clean up the pending connection
         Conns.pending.pop(key)
 
     @staticmethod

@@ -1,0 +1,28 @@
+@startuml
+!theme blueprint
+title Connection Diagram
+
+Actor User
+......... First-connect .........
+Badge -[#green]>  Server : connect
+Server -> Badge : connection waiting:{key}
+Badge -> User : *Shows {key} on screen
+User -> Server : /Slash connect_badge {key}
+Server -> Badge : connection accepted
+Badge -> User : *Shows Connected on screen
+......... Re-connect .........
+Badge -[#green]> Server: reconnect:{key}
+Server -> Badge: connection accepted/denied
+
+......... Receive a notification .........
+Server -> Badge: Notification
+Badge -[#green]>o User: user joined guildname channelname
+Badge -[#orange]>o User: user moved to guildname channelname
+Badge ->o User: user sent message in channelname
+Badge -[#Blue]>o User: user posted a link in channelname
+....... Every minute we receive a ping .......
+Server -[#red]> Badge: ping
+Badge -> User : updates clock
+Server -[#red]> Badge: ping
+Badge -> User : updates clock
+@enduml

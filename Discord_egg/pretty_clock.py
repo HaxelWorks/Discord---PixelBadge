@@ -3,7 +3,7 @@
 
 import rgb, machine, time
 from default_icons import animation_connecting_wifi, icon_no_wifi
-from util import RED, GREEN, ORANGE, BLUE, WHITE, BLACK
+from util import RED
 from util import connect_wifi
 
 rgb.clear()
