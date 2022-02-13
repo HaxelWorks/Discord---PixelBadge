@@ -21,7 +21,7 @@ class DiscordClient(discord.Bot):
     async def on_ready(self):
         print("Logged on as {0}!".format(self.user))
 
-    # This is here for debugging purposes
+    # This is here for future purposes
     # async def on_message(self, message):
     #     print("Message from {0.author}: {0.content}".format(message))
     #     if message.content == "sync_commands":
@@ -84,6 +84,7 @@ async def health_check(path, request_headers):
 
 
 def never():
+    """ this is an async trick to keep the event loop alive """
     try:
         return never.never
     except AttributeError:
@@ -110,12 +111,14 @@ async def restart(coro):
             await asyncio.sleep(5)
 
 
-async def keepalive():
+async def keepalive(interval=60):
     print("Starting keepalive")
     while True:
         # sleep until the next whole minute
         now = time.time()
-        await asyncio.sleep(60 * (math.ceil(now / 60) - now / 60))
+        await asyncio.sleep(interval * (math.ceil(now / interval) - now / interval))
+        #prints ping and the current time
+        print(f"ping {time.time()}")
         # send a ping to all connected badges
         await manager.Conns.send_broadcast("ping")
 
@@ -127,7 +130,7 @@ def main():
 
     loop.create_task(BOT.start(TOKEN))
     loop.create_task(socket_server_run())
-    loop.create_task(keepalive())
+    loop.create_task(keepalive(60))
     loop.run_forever()
 
 

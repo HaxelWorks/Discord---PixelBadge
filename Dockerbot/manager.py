@@ -65,6 +65,8 @@ class Conns(SimpleNamespace):
         """send message to all sockets subscribed to this guild"""
 
         # collect all the relevant websockets
+        if not (users := cls.routing[guild_id]): # if there are no users subscribed to this guild
+            return
         socks = []
         for usr_ids in cls.routing[guild_id]:
             socks.extend(cls.sockcon[usr_ids])
@@ -149,7 +151,7 @@ async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -
     """Receive a new websocket connection and add it to the pending connections table"""
     try:
         async for message in websocket:
-            if message == "connect":
+            if message.startswith("connect"):
                 key = key_generator(7)
                 Conns.pending[key] = websocket
                 print(f"key: {key} wants to connect")
@@ -163,7 +165,7 @@ async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -
                     badge_user.websockets[key] = websocket
                     await websocket.send("connection accepted")
                     print(f"key: {key} reconnected")
-                else:
+                else: # if the key is not found
                     await websocket.send("connection denied")
                     print(f"key: {key} wants to reconnect but key is not known")
 

@@ -6,6 +6,7 @@ from default_icons import animation_connecting_wifi, icon_no_wifi
 from util import RED
 from util import connect_wifi
 
+connect_wifi()
 rgb.clear()
 rtc = machine.RTC()
 timezone = machine.nvs_getstr("system", "timezone")
@@ -40,7 +41,6 @@ def update_clock(force_draw=False):
 
 
 if __name__ == "__main__":
-    connect_wifi()
     update_clock(True)
     while True:
         update_clock()

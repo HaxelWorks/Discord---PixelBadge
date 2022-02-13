@@ -5,18 +5,25 @@ Made by: Axel Roijers
 """
 
 # import logging
+print("Starting import")
 import usocket as socket
+print("socket")
 import ubinascii as binascii
+print("binascii")
 import ussl
+print("ussl")
 from util import notify, connect_wifi
 from util import RED, GREEN, BLUE
+print("utils")
 from protocol import Websocket, urlparse
+print("protocol")
 import rgb, system, machine, time
-from pretty_clock import update_clock
 import urandom as random
-
+from simple_clock import update_clock
+print("clocl")
+print("imports done")
 rgb.framerate(30)
-
+interrupt = False
 
 class WebsocketClient(Websocket):
     is_client = True
@@ -75,9 +82,9 @@ def connect_badgeserver(websocket):
     websocket.send("connect")
     rec = websocket.recv()
     if rec.startswith("connection waiting"):
-        key = rec.split(":")[1] # key is the second part of the message
+        key = rec.split(":")[1]  # key is the second part of the message
         rgb.clear()
-        
+
         rgb.scrolltext(key)
         print(key)
     if websocket.recv() == "connection accepted":
@@ -107,56 +114,56 @@ def reconnect_badgeserver(websocket, key):
         print("Connection failed")
         rgb.clear()
         rgb.scrolltext("Connection failed", RED)
-        #throw an exception
+        # throw an exception
         raise Exception("Connection failed")
-        
 
 
-def main():
+
+def main(): 
+    global interrupt
     connect_wifi()
+    
 
     # connect websocket
-    print("Awaiting Connection")
     rgb.clear()
     rgb.scrolltext("Seeking Server", BLUE)
     websocket = connect_websocket("ws://192.168.0.147:8765")
+    print("Connected to server")
     websocket.settimeout(3600)
     rgb.clear()
-    # REFERENCE
-    # machine.nvs_setstr("system", "wifi.ssid", "YOUR SSID HERE")
-    # machine.nvs_setstr("system", "wifi.password", "YOUR PASSWORD HERE")
 
     try:
         key = machine.nvs_getstr("Discord", "key")
         reconnect_badgeserver(websocket, key)
+        print("Reconnected")
     except:
         connect_badgeserver(websocket)
+        print("New connection")
 
     websocket.settimeout(120)
-    while True:
+    while not interrupt:
         rec = websocket.recv()
         if rec != "ping":
             print(rec)
-            notify(*rec.split("#"))
+            msg,color = rec.split("#")
+            notify(msg,color)
             update_clock(force_draw=True)
         else:
             print("pong")
             update_clock()
 
 
-if __name__ == "__main__":
+print("definitions done")
+while not interrupt:
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nExiting")
+        interrupt = True
+    except Exception as e:
+        rgb.clear()
+        rgb.scrolltext("...")
+        print("\nError:", e)
 
-    interrupt = False
-    while not interrupt:
-        try:
-            main()
-        except KeyboardInterrupt:
-            print("\nExiting")
-            interrupt = True
-        except Exception as e:
-            rgb.clear()
-            rgb.scrolltext("...")
-            print("\nError:", e)
-
-    print("rebooting")
-    system.reboot()
+print("rebooting")
+system.reboot()

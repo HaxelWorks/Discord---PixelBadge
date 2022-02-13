@@ -1,6 +1,6 @@
 import rgb, wifi, system, time
 from default_icons import animation_connecting_wifi, icon_no_wifi
-from math import pi, sin
+
 
 FRAMERATE = 30
 
@@ -18,8 +18,13 @@ def hex_to_rgb(hex_color):
     # convert hex color to rgb tuple
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
 
-
+def blip(color):
+    rgb.pixel(color, (0, 0))
+    time.sleep(0.3)
+    rgb.pixel(BLACK, (0, 0))
+    
 def connect_wifi():
+    print("Connecting to wifi")
     # connect WIFI
     if not wifi.status():
         data, size, frames = animation_connecting_wifi
@@ -30,6 +35,7 @@ def connect_wifi():
         if wifi.wait():
             rgb.clear()
             rgb.framerate(20)
+            print("WIFI YAY")
         else:
             print("No wifi")
             rgb.clear()

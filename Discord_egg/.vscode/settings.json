@@ -1,0 +1,38 @@
+{
+    "python.autoComplete.extraPaths": [
+        "c:/Users/axel1/.vscode/extensions/rt-thread.rt-thread-micropython-1.0.8/microExamples/code-completion"
+    ],
+    "python.linting.pylintArgs": [
+        "--init-hook",
+        "import sys; sys.path.append('c:/Users/axel1/.vscode/extensions/rt-thread.rt-thread-micropython-1.0.8/microExamples/code-completion')"
+    ],
+    "files.associations": {
+        ".mpyproject.json": "jsonc"
+    },
+    "MicroPython.executeButton": [
+        {
+            "text": "▶",
+            "tooltip": "Run",
+            "alignment": "left",
+            "command": "extension.executeFile",
+            "priority": 3.5
+        }
+    ],
+    "MicroPython.syncButton": [
+        {
+            "text": "$(sync)",
+            "tooltip": "sync",
+            "alignment": "left",
+            "command": "extension.execute",
+            "priority": 4
+        }
+    ],
+    "python.analysis.extraPaths": [
+        "c:/Users/axel1/.vscode/extensions/rt-thread.rt-thread-micropython-1.0.8/microExamples/code-completion"
+    ],
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#1b2b57",
+        "titleBar.activeBackground": "#1b2b57",
+        "titleBar.activeForeground": "#FCF9FD"
+    }
+}
