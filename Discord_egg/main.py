@@ -1,27 +1,19 @@
 """
 Discord Notifications and Clock for Ipane and PixelBadge
-Made by: Axel Roijers
+by Axel Roijers
 
 """
 
 # import logging
-print("Starting import")
 import usocket as socket
-print("socket")
 import ubinascii as binascii
-print("binascii")
 import ussl
-print("ussl")
 from util import notify, connect_wifi
 from util import RED, GREEN, BLUE
-print("utils")
 from protocol import Websocket, urlparse
-print("protocol")
 import rgb, system, machine, time
 import urandom as random
 from simple_clock import update_clock
-print("clocl")
-print("imports done")
 rgb.framerate(30)
 interrupt = False
 
@@ -84,8 +76,7 @@ def connect_badgeserver(websocket):
     if rec.startswith("connection waiting"):
         key = rec.split(":")[1]  # key is the second part of the message
         rgb.clear()
-
-        rgb.scrolltext(key)
+        rgb.text(key)
         print(key)
     if websocket.recv() == "connection accepted":
         # save the key to nvs

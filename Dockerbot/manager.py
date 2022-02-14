@@ -29,7 +29,19 @@ class Conns(SimpleNamespace):
     sockcon = defaultdict(lambda: None)  #   key: user_id, value: [websocket]
     # in order to turn guild_id into the target websockets, we do this:
     # routing[guild_id] --> [user_id] --> sockcon[user_id] --> [websocket]
-
+    
+    #Saving / Restoring connections
+    @classmethod
+    def save(cls):
+        data = {
+            "keyuser": cls.keyuser,
+            "routing": cls.routing,
+        }
+        with open(path.join(path.dirname(__file__), "conns.yml"), "w") as f:
+            yaml.dump(data, f)
+        
+    
+    #Sending methods
     @classmethod
     async def _try_send(cls, websocket, message: str):
         """Tries to send a message to a websocket. if it fails, it removes the websocket from the list of active websockets"""
@@ -152,7 +164,7 @@ async def receive_new_websocket(websocket: websockets.WebSocketServerProtocol) -
     try:
         async for message in websocket:
             if message.startswith("connect"):
-                key = key_generator(7)
+                key = key_generator(size=6)
                 Conns.pending[key] = websocket
                 print(f"key: {key} wants to connect")
                 await websocket.send("connection waiting:" + key)
