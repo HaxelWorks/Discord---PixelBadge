@@ -82,11 +82,11 @@ def connect_badgeserver(websocket):
         # save the key to nvs
         machine.nvs_setstr("Discord", "key", key)
         rgb.clear()
-        rgb.scrolltext("Connected", GREEN)
         print("Connected")
+        update_clock(force_draw=True)
     else:
         print("Connection failed")
-        rgb.scrolltext("Connection failed", RED)
+        rgb.scrolltext("Failed", RED)
         time.sleep(6)
 
 

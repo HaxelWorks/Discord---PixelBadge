@@ -31,8 +31,8 @@
         "c:/Users/axel1/.vscode/extensions/rt-thread.rt-thread-micropython-1.0.8/microExamples/code-completion"
     ],
     "workbench.colorCustomizations": {
-        "activityBar.background": "#1b2b57",
-        "titleBar.activeBackground": "#1b2b57",
+        "activityBar.background": "#331515",
+        "titleBar.activeBackground": "#331515",
         "titleBar.activeForeground": "#FCF9FD"
     }
 }

@@ -117,8 +117,8 @@ async def keepalive(interval=60):
         # sleep until the next whole minute
         now = time.time()
         await asyncio.sleep(interval * (math.ceil(now / interval) - now / interval))
-        #prints ping and the current time
-        print(f"ping {time.time()}")
+        #prints ping and a formatted time
+        print(f"Ping: {time.strftime('%H:%M:%S')}")
         # send a ping to all connected badges
         await manager.Conns.send_broadcast("ping")
 
@@ -130,7 +130,7 @@ def main():
 
     loop.create_task(BOT.start(TOKEN))
     loop.create_task(socket_server_run())
-    loop.create_task(keepalive(60))
+    loop.create_task(keepalive())
     loop.run_forever()
 
 
