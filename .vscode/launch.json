@@ -8,7 +8,7 @@
             "name": "Discord Bot",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceRoot}/Dockerbot/notifyBot.py",
+            "program": "${workspaceRoot}/Dockerbot/main.py",
             "console": "integratedTerminal",
             
             "env": {
