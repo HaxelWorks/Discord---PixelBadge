@@ -14,6 +14,23 @@ ORANGE = (255, 165, 0)
 BLUE = (0, 0, 255)
 
 
+def hex_to_rgb(hex_color):
+    # convert hex color to rgb tuple
+    return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+
+def countdown(seconds):
+    for i in range(seconds):
+        rgb.clear()
+        rgb.text(str(seconds-i))
+        time.sleep(1)
+
+
+
+def blip(color):
+    rgb.pixel(color, (0, 0))
+    time.sleep(0.3)
+    rgb.pixel(BLACK, (0, 0))
+    
 def connect_wifi():
     # connect WIFI
     if not wifi.status():

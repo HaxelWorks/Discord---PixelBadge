@@ -2,3 +2,5 @@
 Dockerbot/tokens.py
 *.pyc
 Dockerbot/logs/log1.log
+Discord_egg/.vscode/settings.json
+.vscode/settings.json
