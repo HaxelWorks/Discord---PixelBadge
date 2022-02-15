@@ -27,16 +27,15 @@ class Conns(SimpleNamespace):
 
     pending = dict()  #   key: key, value: websocket
     keystor = dict()  #   key: key, value: user_id
-    subusrs = dict()  #   key: guild_id, value: [user_id] Subscribed users
-    usrsock = dict()  #   key: user_id, value: [websocket]
-
+    subusrs = defaultdict(list)  #   key: guild_id, value: [user_id] Subscribed users
+    usrsock = defaultdict(list)  #   key: user_id, value: [websocket]
 
     # Saving / Restoring connections
     @classmethod
     def save(cls):
         data = {
             "keystor": cls.keystor,
-            "subusrs": cls.subusrs,
+            "subusrs": dict(cls.subusrs),
         }
         with open(path.join(path.dirname(__file__), "conns.yml"), "w") as f:
             yaml.dump(data, f)
@@ -51,7 +50,7 @@ class Conns(SimpleNamespace):
         with open(path.join(path.dirname(__file__), "conns.yml"), "r") as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
             cls.keystor = data["keystor"]
-            cls.subusrs = data["subusrs"]
+            cls.subusrs = defaultdict(list, data["subusrs"])
 
     # Sending methods
     @classmethod
@@ -77,7 +76,7 @@ class Conns(SimpleNamespace):
     @classmethod
     async def send_by_sockets(cls, websockets: list, message: str):
         """send message to all sockets in websockets"""
-        if not websockets or not message: # guard against empty lists
+        if not websockets or not message:  # guard against empty lists
             return
         await asyncio.gather(
             *[cls._try_send(websocket, message) for websocket in websockets]
@@ -95,10 +94,11 @@ class Conns(SimpleNamespace):
         # collect all the relevant websockets
         if not (uids := cls.subusrs.get(guild_id)):  # guard against empty lists
             return
-        sockets = [] # collects all the websockets
+        sockets = []  # collects all the websockets
         for uid in uids:
             sockets.extend(cls.usrsock.get(uid, []))
         await cls.send_by_sockets(sockets, message)
+
 
 # load the previous connections
 Conns.load()
@@ -113,31 +113,25 @@ class SlashCommands(SimpleNamespace):
     async def connect_badge(ctx, key: str):
         """Connect a badge to your user id"""
 
-        user = ctx.author
-        guild = ctx.guild
+        user = ctx.author  # type: discord.User
+        guild = ctx.guild  # type: discord.Guild
 
         key = key.upper()
-        if not (
-            ws := Conns.pending.get(key)
-        ):  # If the key is invalid, do nothing and return
+
+        # If the key is invalid, do nothing and return
+        if not (ws := Conns.pending.get(key)):
             await ctx.send("Invalid key")
             return
 
-        if not (user_sockets := Conns.usrsock.get(user.id)):  # If the user has no badges
-            Conns.usrsock[user.id] = [ws]
-            print(f"new badge user: {user.name}")
-        else:  # If the user already has a badge connected
-            # use the key to connect the websocket to the badge user
-            user_sockets.append(ws)
-            print(f"new badge connected to user: {user.name}")
+        # attach the websocket to the user
+        Conns.usrsock[user.id].append(ws)
+        print(f"New badge user 🥳🥳🥳 welcome {user.name}")
+        await ctx.send(f"Connected to badge {key}")
 
-        # Add the user to the routing table
-        if routes := Conns.subusrs.get(guild.id):  # if the guild has a routing table
-            routes.append(user_sockets)
-        else:  # if the guild has no routing table
-            Conns.subusrs[guild.id] = [user.id] # create a new routing table
+        # subcribe the user to the guild for notifications
+        Conns.subusrs[guild.id].append(user.id)
 
-        # connect the user to the key
+        # attach the user to the key
         Conns.keystor[key] = user.id
 
         # Acknoledge the connection
@@ -152,17 +146,26 @@ class SlashCommands(SimpleNamespace):
     async def enable_notifications(ctx):
         """Enable notifications for this server"""
 
-        if not (badge_user := Conns.users[ctx.author.id]):  # If the user has no badges
-            await ctx.respond("You have no badge connected")
+        user = ctx.author  # type: discord.User
+        guild = ctx.guild  # type: discord.Guild
+
+        # check if the user has a badge connected
+        if not user.id in Conns.usrsock.keys():  # guard against user not having a badge
+            await ctx.respond("You do not have a badge connected")
             return
 
-        if table := Conns.subusrs[ctx.guild.id]:  # if the guild has a routing table
-            table.append(badge_user)
-        else:  # if the guild has no routing table
-            Conns.subusrs[ctx.guild.id] = [badge_user]
-        await ctx.respond("Enabled")
-        print(f"{ctx.author}'s Badges are enabled on {ctx.guild.name}")
-
+        # if the user is already subscribed, notify the user and return
+        if user.id in Conns.subusrs[guild.id]:
+            await ctx.respond("You are already subscribed")
+            return
+    
+        # subcribe the user to the guild for notifications
+        Conns.subusrs[guild.id].append(user.id)
+        
+        # message the user
+        msg = f"{user.name}'s Badges are enabled on {guild.name}"
+        await ctx.respond(msg)
+        print(msg)
 
 from util import key_generator
 
@@ -183,7 +186,7 @@ async def receive_new_websocket(ws: websockets.WebSocketServerProtocol) -> None:
                 # if the key is found
                 if badge_user := Conns.keystor.get(key):
                     # add the websocket to the badge users websocket list
-                    badge_user.websockets[key] = ws  
+                    Conns.usrsock[badge_user].append(ws)
                     await ws.send("connection accepted")
                     print(f"key: {key} reconnected")
                 else:  # if the key is not found

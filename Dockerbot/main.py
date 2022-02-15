@@ -111,7 +111,7 @@ async def restart(coro):
             await asyncio.sleep(5)
 
 
-async def keepalive(interval=60):
+async def keepalive(interval=30):
     print("Starting keepalive")
     while True:
         # sleep until the next whole minute
