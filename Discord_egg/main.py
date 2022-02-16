@@ -117,8 +117,8 @@ def main():
 
     # connect websocket
     rgb.clear()
-    rgb.scrolltext("Seeking Server", BLUE)
-    websocket = connect_websocket("ws://192.168.0.147:8765")
+    rgb.scrolltext("Finding Hot servers in your area", BLUE)
+    websocket = connect_websocket("ws://pixelbox.ddns.net:8765")
     print("Connected to server")
     websocket.settimeout(3600)
     rgb.clear()
@@ -130,6 +130,7 @@ def main():
     except:
         connect_badgeserver(websocket)
         print("New connection")
+
 
     websocket.settimeout(120)
     while not interrupt:

@@ -13,7 +13,7 @@ from util import Colors, rgb_to_hex
 
 
 HOST_IP = "192.168.0.147"
-
+PORT = 8765
 
 # DISCORD PART
 class DiscordClient(discord.Bot):
@@ -96,7 +96,7 @@ async def socket_server_run():
     async with websockets.serve(
         manager.receive_new_websocket,
         HOST_IP,
-        8765,
+        PORT,
         process_request=health_check,
     ):
         await never()  # Never ends
