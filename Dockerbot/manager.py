@@ -125,7 +125,7 @@ class SlashCommands(SimpleNamespace):
 
         # attach the websocket to the user
         Conns.usrsock[user.id].append(ws)
-        print(msg:=f"New badge user 🥳🥳🥳 welcome {user.name}")
+        print(msg:=f"New badge user 🥳 welcome {user.name}")
         
         # subcribe the user to the guild for notifications
         Conns.subusrs[guild.id].append(user.id)

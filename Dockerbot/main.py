@@ -9,12 +9,9 @@ import manager
 import discord
 from util import Colors, rgb_to_hex
 
-# import threading
-
-
 HOST_IP = "192.168.0.147"
 PORT = 8765
-
+   
 # DISCORD PART
 class DiscordClient(discord.Bot):
     # This is here for debugging purposes
@@ -30,7 +27,6 @@ class DiscordClient(discord.Bot):
 
     # Triggers whenever a user enters or leaves a voice channel
     async def on_voice_state_update(self, user: discord.User, before, after):
-
         # If the user has joined a voice channel
         if before.channel is None and after.channel is not None:
             state = "joined"
@@ -54,9 +50,8 @@ class DiscordClient(discord.Bot):
         # Remove the hashtag from the user id
         user = user.name.split("#")[0]
 
-        print(
-            message := f"{user} {state} {channel.guild.name} {channel.name}{rgb_to_hex(color)}"
-        )
+        message = f"{user} {state} {channel.guild.name} {channel.name}{rgb_to_hex(color)}"
+        print(message)
         await manager.Conns.send_by_guild(channel.guild.id, message)
 
 
@@ -84,7 +79,7 @@ async def health_check(path, request_headers):
 
 
 def never():
-    """ this is an async trick to keep the event loop alive """
+    """this is an async trick to keep the event loop alive"""
     try:
         return never.never
     except AttributeError:
@@ -116,11 +111,11 @@ async def keepalive(interval=30):
     while True:
         # sleep until the next whole minute
         now = time.time()
-        await asyncio.sleep(interval * (math.ceil(now / interval) - now / interval))
-        #prints ping and a formatted time
-        print(f"Ping: {time.strftime('%H:%M:%S')}")
-        # send a ping to all connected badges
+        delta = interval * (math.ceil(now / interval) - now / interval)
+        await asyncio.sleep(delta+1)
         await manager.Conns.send_broadcast("ping")
+        print(f"Ping: {time.strftime('%H:%M:%S')}   Next: {delta:.4f}")
+        # send a ping to all connected badges
 
 
 def main():
