@@ -9,7 +9,8 @@ import manager
 import discord
 from util import Colors, rgb_to_hex
 
-HOST_IP = "192.168.0.147"
+# HOST_IP = "192.168.0.147"
+HOST_IP = "0.0.0.0"
 PORT = 8765
    
 # DISCORD PART

@@ -114,7 +114,6 @@ def main():
     global interrupt
     connect_wifi()
     
-
     # connect websocket
     rgb.clear()
     rgb.scrolltext("Finding Hot servers in your area", BLUE)
@@ -152,10 +151,7 @@ while not interrupt:
     except KeyboardInterrupt:
         print("\nExiting")
         interrupt = True
-    except Exception as e:
-        rgb.clear()
-        rgb.scrolltext("...")
-        print("\nError:", e)
+        break
 
 print("rebooting")
 system.reboot()
