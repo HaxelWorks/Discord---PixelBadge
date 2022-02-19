@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  ipanediscord:
+    image: ipanediscord
+    ports:
+    - 8765:8765
+    build:
+      context: .
+      dockerfile: ./Dockerfile

@@ -16,7 +16,7 @@ import yaml
 import atexit
 from types import SimpleNamespace
 from itertools import chain
-
+import random
 
 class Conns(SimpleNamespace):
 
@@ -125,9 +125,8 @@ class SlashCommands(SimpleNamespace):
 
         # attach the websocket to the user
         Conns.usrsock[user.id].append(ws)
-        print(f"New badge user 🥳🥳🥳 welcome {user.name}")
-        await ctx.send(f"Connected to badge {key}")
-
+        print(msg:=f"New badge user 🥳 welcome {user.name}")
+        
         # subcribe the user to the guild for notifications
         Conns.subusrs[guild.id].append(user.id)
 
@@ -135,8 +134,7 @@ class SlashCommands(SimpleNamespace):
         Conns.keystor[key] = user.id
 
         # Acknoledge the connection
-        msg = "connection accepted"
-        await asyncio.gather(ws.send(msg), ctx.respond(msg))
+        await asyncio.gather(ws.send("connection accepted"), ctx.respond(msg))
         print(f"{user}'s Ipane is connected to {guild.name}")
 
         # Clean up the pending connection
@@ -167,8 +165,15 @@ class SlashCommands(SimpleNamespace):
         await ctx.respond(msg)
         print(msg)
 
-from util import key_generator
-
+import string
+def key_generator(size, chars=string.ascii_uppercase + string.digits):
+    key = "".join(random.choice(chars) for _ in range(size))
+    # check if the key is already in use
+    if key in Conns.keystor:
+        print(f"key collision: {key}")
+        return key_generator(size, chars)
+    return key
+    
 # This is a callback function used by the websocket server
 async def receive_new_websocket(ws: websockets.WebSocketServerProtocol) -> None:
     """Receive a new websocket connection and add it to the pending connections table"""
