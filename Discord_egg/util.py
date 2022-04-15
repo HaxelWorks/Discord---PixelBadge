@@ -74,7 +74,7 @@ def notify(message, color=None):
     rgb.framerate(FRAMERATE)
 
     # Flash the display n times
-    rgb.brightness(config.ANIMATION_BRIGHTNESS)
+    rgb.brightness(config.animation_brightness)
     
     for _ in range(3):
         rgb.background(color)
@@ -82,7 +82,7 @@ def notify(message, color=None):
         rgb.background(BLACK)
         time.sleep(0.2)
         
-    rgb.brightness(config.MESSAGE_BRIGHTNESS)
+    rgb.brightness(config.message_brightness)
     time.sleep(0.2)
 
     # Scroll the message

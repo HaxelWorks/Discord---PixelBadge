@@ -35,9 +35,9 @@ def update_clock(force_draw=False):
     stm = "%02d" % tm
     if tm != tmold or force_draw:
         rgb.clear()
-        rgb.brightness(config.CLOCK_BRIGHTNESS)
-        rgb.text(sth, config.CLOCK_COLOR, (3, 0))
-        rgb.text(stm, config.CLOCK_COLOR, (18, 0))
+        rgb.brightness(config.clock_brightness)
+        rgb.text(sth, config.clock_color, (3, 0))
+        rgb.text(stm, config.clock_color, (18, 0))
         tmold = tm
 
 

@@ -1,5 +1,6 @@
-CLOCK_COLOR = (255, 0, 0)
-CLOCK_BRIGHTNESS = 2
+clock_color = (255, 0, 0)
+clock_brightness = 2
 
-ANIMATION_BRIGHTNESS = 32
-MESSAGE_BRIGHTNESS = 3
+animation_brightness = 32
+message_brightness = 3
+

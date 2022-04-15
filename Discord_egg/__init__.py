@@ -144,10 +144,10 @@ def main():
             print("pong")
             update_clock()
         elif rec.startswith("clock_color"):
-            config.CLOCK_COLOR = util.hex_to_rgb(rec.split("#")[1])
+            config.clock_color = util.hex_to_rgb(rec.split("#")[1])
             update_clock(force_draw=True)
         elif rec.startswith("clock_brightness"):    
-            config.CLOCK_BRIGHTNESS = int(rec.split(" ")[1])
+            config.clock_brightness = int(rec.split(" ")[1])
             update_clock(force_draw=True)
             
         else:
