@@ -45,6 +45,14 @@ class DiscordClient(discord.Bot):
             state = "moved to"
             channel = after.channel
             color = Colors.ORANGE
+            
+        # if the user muted/unmuted themselves
+        elif before.self_mute != after.self_mute:
+            pass
+        # if the user starts or stops streaming
+        elif before.self_stream != after.self_stream:
+            pass
+        
         else:  # Do nothing and return
             return
 
@@ -58,6 +66,7 @@ class DiscordClient(discord.Bot):
 
 BOT = DiscordClient()
 
+# SLASH COMMANDS
 
 # add the slash commands from the manager to the bot
 @BOT.slash_command()
@@ -70,7 +79,12 @@ async def connect_badge(ctx, key: str):
 async def enable_notifications(ctx):
     """Enables notifications for the current server"""
     await manager.SlashCommands.enable_notifications(ctx=ctx)
+                                                                                                                                                                                                                          
 
+@BOT.slash_command()
+async def clock_color(ctx, r: int, g: int, b: int):
+    """Sets the clock color, values range from 0-255"""
+    await manager.SlashCommands.clock_color(ctx=ctx, R=r, G=g, B=b )
 
 # WEBSOCKET PART
 async def health_check(path, request_headers):

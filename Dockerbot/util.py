@@ -11,7 +11,7 @@ def remove_unicode(string):
     return "".join(i for i in string if ord(i) < 128)
 
 
-def rgb_to_hex(rgb):
+def rgb_to_hex(rgb: tuple):
     """turn an rgb tuple into a hex string"""
     return "#%02x%02x%02x" % rgb
 

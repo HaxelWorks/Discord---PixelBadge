@@ -17,7 +17,7 @@ import atexit
 from types import SimpleNamespace
 from itertools import chain
 import random
-
+from util import rgb_to_hex
 class Conns(SimpleNamespace):
 
     """
@@ -142,6 +142,7 @@ class SlashCommands(SimpleNamespace):
 
     @staticmethod
     async def enable_notifications(ctx):
+        
         """Enable notifications for this server"""
 
         user = ctx.author  # type: discord.User
@@ -164,6 +165,16 @@ class SlashCommands(SimpleNamespace):
         msg = f"{user.name}'s Badges are enabled on {guild.name}"
         await ctx.respond(msg)
         print(msg)
+
+    @staticmethod
+    async def clock_color(ctx, R:int, G:int,B:int):
+        colorhex = rgb_to_hex((R,G,B))
+        Conns.send_by_user(ctx.author.id, f"clock_color {colorhex}")
+        
+        
+    @staticmethod
+    async def clock_brightness(ctx, brightness:int):
+        Conns.send_by_user(ctx.author.id, f"clock_brightness {brightness}")
 
 import string
 def key_generator(size, chars=string.ascii_uppercase + string.digits):
