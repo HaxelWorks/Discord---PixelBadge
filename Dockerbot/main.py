@@ -48,11 +48,10 @@ class DiscordClient(discord.Bot):
             
         # if the user muted/unmuted themselves
         elif before.self_mute != after.self_mute:
-            pass
+            return
         # if the user starts or stops streaming
         elif before.self_stream != after.self_stream:
-            pass
-        
+            return
         else:  # Do nothing and return
             return
 
@@ -82,9 +81,17 @@ async def enable_notifications(ctx):
                                                                                                                                                                                                                           
 
 @BOT.slash_command()
-async def clock_color(ctx, r: int, g: int, b: int):
-    """Sets the clock color, values range from 0-255"""
-    await manager.SlashCommands.clock_color(ctx=ctx, R=r, G=g, B=b )
+async def clock_color(ctx, red: int, green: int, blue: int, brightness: int):
+    """
+    Sets the clock color, values range from 0-255
+
+    red: 0-255
+    green: 0-255
+    blue: 0-255
+    brightness: 0-31
+    """    
+    
+    await manager.SlashCommands.clock_color(ctx=ctx, R=red, G=green, B=blue, L=brightness)
 
 # WEBSOCKET PART
 async def health_check(path, request_headers):

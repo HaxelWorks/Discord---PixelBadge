@@ -25,6 +25,7 @@
             "alignment": "left",
             "command": "extension.execute",
             "priority": 4
+            ""
         }
     ],
     "python.analysis.extraPaths": [

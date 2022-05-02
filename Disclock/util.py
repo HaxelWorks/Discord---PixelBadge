@@ -1,6 +1,6 @@
 import rgb, wifi, system, time
 from default_icons import animation_connecting_wifi, icon_no_wifi
-import config
+import settings
 
 FRAMERATE = 30
 
@@ -74,7 +74,7 @@ def notify(message, color=None):
     rgb.framerate(FRAMERATE)
 
     # Flash the display n times
-    rgb.brightness(config.animation_brightness)
+    rgb.brightness(settings.animation_brightness)
     
     for _ in range(3):
         rgb.background(color)
@@ -82,10 +82,12 @@ def notify(message, color=None):
         rgb.background(BLACK)
         time.sleep(0.2)
         
-    rgb.brightness(config.message_brightness)
+    rgb.brightness(settings.clock_brightness)
     time.sleep(0.2)
 
     # Scroll the message
     rgb.scrolltext(message, color)
     time.sleep(scroll_time)
     rgb.clear()
+
+print("util.py loaded")

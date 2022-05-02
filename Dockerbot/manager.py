@@ -8,16 +8,21 @@ Connection manager has multiple functions
 6: can change the color,brigtness and timezone of the Ipane
 """
 import asyncio
+import atexit
+import json
+import random
 from collections import defaultdict
+from itertools import chain
+from os import path
+from types import SimpleNamespace
+
 import discord
 import websockets
-from os import path
 import yaml
-import atexit
-from types import SimpleNamespace
-from itertools import chain
-import random
+
 from util import rgb_to_hex
+
+
 class Conns(SimpleNamespace):
 
     """
@@ -123,9 +128,13 @@ class SlashCommands(SimpleNamespace):
             await ctx.send("Invalid key")
             return
 
+        # first acknowledge the connection to the badge
+        await ws.send("connection accepted")
+        
+        # send the response to the user
+        
         # attach the websocket to the user
         Conns.usrsock[user.id].append(ws)
-        print(msg:=f"New badge user 🥳 welcome {user.name}")
         
         # subcribe the user to the guild for notifications
         Conns.subusrs[guild.id].append(user.id)
@@ -133,10 +142,11 @@ class SlashCommands(SimpleNamespace):
         # attach the user to the key
         Conns.keystor[key] = user.id
 
-        # Acknoledge the connection
-        await asyncio.gather(ws.send("connection accepted"), ctx.respond(msg))
+        response=f"New user 🥳 welcome {user.name}"
+        print(response)
+        await ctx.respond(response)
+    
         print(f"{user}'s Ipane is connected to {guild.name}")
-
         # Clean up the pending connection
         Conns.pending.pop(key)
 
@@ -167,15 +177,19 @@ class SlashCommands(SimpleNamespace):
         print(msg)
 
     @staticmethod
-    async def clock_color(ctx, R:int, G:int,B:int):
-        colorhex = rgb_to_hex((R,G,B))
-        Conns.send_by_user(ctx.author.id, f"clock_color {colorhex}")
+    async def clock_color(ctx, R:int, G:int,B:int,L:int):
+        json_data = {
+        "clock_red": R,
+        "clock_green": G,
+        "clock_blue": B,
+        "clock_brightness" : L
+        }
+        json_data = json.dumps(json_data)
+        
+        await Conns.send_by_user(ctx.author.id, json_data)
+        await ctx.respond(f"Clock color set 🌈")
         
         
-    @staticmethod
-    async def clock_brightness(ctx, brightness:int):
-        Conns.send_by_user(ctx.author.id, f"clock_brightness {brightness}")
-
 import string
 def key_generator(size, chars=string.ascii_uppercase + string.digits):
     key = "".join(random.choice(chars) for _ in range(size))

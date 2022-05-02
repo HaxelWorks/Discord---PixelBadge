@@ -7,22 +7,27 @@ by Axel Roijers
 
 APP_NAME="disclock"
 import sys
-import util
 # We would like to import modules that are added to his folder.
+
 sys.path.append("/apps/" + APP_NAME)
 
 import usocket as socket
 import ubinascii as binascii
 import ussl
+import util
+import valuestore
 from util import notify, connect_wifi
 from util import RED, GREEN, BLUE
 from protocol import Websocket, urlparse
 import rgb, system, machine, time
 import urandom as random
 from simple_clock import update_clock
-import config
+import settings
+import json
+
 rgb.framerate(30)
 interrupt = False
+
 
 class WebsocketClient(Websocket):
     is_client = True
@@ -89,8 +94,8 @@ def connect_badgeserver(websocket):
         # save the key to nvs
         machine.nvs_setstr("Discord", "key", key)
         rgb.clear()
+        rgb.scrolltext("Connected", GREEN)
         print("Connected")
-        update_clock(force_draw=True)
     else:
         print("Connection failed")
         rgb.scrolltext("Failed", RED)
@@ -106,7 +111,7 @@ def reconnect_badgeserver(websocket, key):
         print("Reconnecting")
     if websocket.recv() == "connection accepted":
         rgb.clear()
-        rgb.scrolltext("Connected", GREEN)
+        rgb.scrolltext("Waiting for next ping", GREEN)
         print("Connected")
     else:
         print("Connection failed")
@@ -138,18 +143,21 @@ def main():
 
 
     websocket.settimeout(120)
-    while not interrupt:
+    while not interrupt: # Main loop
         rec = websocket.recv()
         if rec == "ping":
             print("pong")
             update_clock()
-        elif rec.startswith("clock_color"):
-            config.clock_color = util.hex_to_rgb(rec.split("#")[1])
-            update_clock(force_draw=True)
-        elif rec.startswith("clock_brightness"):    
-            config.clock_brightness = int(rec.split(" ")[1])
-            update_clock(force_draw=True)
             
+        # if json    
+        elif rec[0] == "{" and rec[-1] == "}":
+            json_data = json.loads(rec)
+            valuestore.save("Discord", "clock_color", json_data)
+            for k, v in json_data.items():
+                setattr(settings, k, v)
+
+            update_clock(force_draw=True)
+
         else:
             print(rec)
             msg,color = rec.split("#")
@@ -157,7 +165,6 @@ def main():
             update_clock(force_draw=True)
             
 
-print("definitions done")
 while not interrupt:
     try:
         main()

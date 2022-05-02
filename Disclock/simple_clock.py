@@ -3,7 +3,7 @@
 
 import rgb, machine, time
 from default_icons import animation_connecting_wifi, icon_no_wifi
-import config
+import settings
 from util import connect_wifi
 
 connect_wifi()
@@ -35,11 +35,15 @@ def update_clock(force_draw=False):
     stm = "%02d" % tm
     if tm != tmold or force_draw:
         rgb.clear()
-        rgb.brightness(config.clock_brightness)
-        rgb.text(sth, config.clock_color, (3, 0))
-        rgb.text(stm, config.clock_color, (18, 0))
+        
+        rgb.brightness(settings.clock_brightness)
+        
+        color = (settings.clock_red, settings.clock_green, settings.clock_blue)
+        
+        rgb.text(sth, color, (3, 0))
+        rgb.text(stm, color, (18, 0))
+        
         tmold = tm
-
 
 if __name__ == "__main__":
     update_clock(True)
