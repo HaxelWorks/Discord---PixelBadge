@@ -81,7 +81,10 @@ class Websocket:
         self.close()
 
     def settimeout(self, timeout):
-        self.sock.settimeout(timeout)
+        try:
+            self.sock.settimeout(timeout)
+        except AttributeError:
+            pass
 
     def read_frame(self, max_size=None):
         """

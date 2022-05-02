@@ -5,6 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Cloud Run: Run/Debug Locally",
+            "type": "cloudcode.cloudrun",
+            "request": "launch",
+            "build": {
+                "docker": {
+                    "path": "Dockerbot/Dockerfile"
+                }
+            },
+            "image": "Ipane-discord",
+            "service": {
+                "name": "ipane-discord",
+                "containerPort": 8080,
+                "resources": {
+                    "limits": {
+                        "memory": "256Mi"
+                    }
+                }
+            },
+            "target": {
+                "minikube": {}
+            },
+            "watch": true,
+            "externalPortForward": 8765
+        },
+        {
             "name": "Python: Huidige bestand",
             "type": "python",
             "request": "launch",
@@ -20,7 +45,7 @@
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "${workspaceRoot}"
-            },
+            }
         }
     ]
 }

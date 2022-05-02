@@ -6,6 +6,7 @@ by Axel Roijers
 
 
 APP_NAME="disclock"
+SERVER_URL = "wss://ipane-discord-2sj4aqmjbq-ew.a.run.app"
 import sys
 # We would like to import modules that are added to his folder.
 
@@ -128,7 +129,7 @@ def main():
     # connect websocket
     rgb.clear()
     rgb.scrolltext("Finding Hot servers in your area", BLUE)
-    websocket = connect_websocket("ws://pixelbox.ddns.net:8765")
+    websocket = connect_websocket(SERVER_URL)
     print("Connected to server")
     websocket.settimeout(3600)
     rgb.clear()
