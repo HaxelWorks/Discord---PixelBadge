@@ -7,6 +7,8 @@ by Axel Roijers
 
 APP_NAME="disclock"
 SERVER_URL = "wss://ipane-discord-2sj4aqmjbq-ew.a.run.app"
+# SERVER_URL = "ws://pixelbox.ddns.net:8765"
+
 import sys
 # We would like to import modules that are added to his folder.
 
@@ -146,12 +148,15 @@ def main():
     websocket.settimeout(120)
     while not interrupt: # Main loop
         rec = websocket.recv()
+        if not rec:
+            continue        
+        
         if rec == "ping":
             print("pong")
             update_clock()
             
         # if json    
-        elif rec[0] == "{" and rec[-1] == "}":
+        elif rec[0] == "{":
             json_data = json.loads(rec)
             valuestore.save("Discord", "clock_color", json_data)
             for k, v in json_data.items():
