@@ -6,7 +6,7 @@ from mp.mpfshell import MpFileShell
 from mp.mpfexp import RemoteIOError
 from tqdm import tqdm
 
-APP_NAME = "Disclock"
+APP_NAME = "disclock"
 LOCAL_PATH = f"./{APP_NAME}/"
 REMOTE_PATH = f"apps/{APP_NAME}/"
 
